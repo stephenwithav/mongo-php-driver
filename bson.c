@@ -188,11 +188,14 @@ int php_mongo_serialize_element(const char *name, int name_len, zval **data, mon
 			PHP_MONGO_SERIALIZE_KEY(BSON_NULL);
 			break;
 
+		case BSON_ULONG:
+			PHP_MONGO_SERIALIZE_KEY(BSON_INT);
+			php_mongo_serialize_ulong(buf, Z_LVAL_PP(data));
+			break;
+
 		case IS_LONG:
 			if (MonGlo(native_long)) {
 #if SIZEOF_LONG == 4
-			PHP_MONGO_SERIALIZE_KEY(BSON_INT);
-			php_mongo_serialize_int(buf, Z_LVAL_PP(data));
 #else
 # if SIZEOF_LONG == 8
 			PHP_MONGO_SERIALIZE_KEY(BSON_LONG);
@@ -554,6 +557,18 @@ void php_mongo_serialize_int(mongo_buffer *buf, int num)
 
 	memcpy(buf->pos, &i, INT_32);
 	buf->pos += INT_32;
+}
+
+void php_mongo_serialize_ulong(mongo_buffer *buf, uint64_t num)
+{
+	int64_t i = MONGO_64(num);
+
+	if (BUF_REMAINING <= INT_64) {
+		resize_buf(buf, INT_64);
+	}
+
+	memcpy(buf->pos, &i, INT_64);
+	buf->pos += INT_64;
 }
 
 void php_mongo_serialize_long(mongo_buffer *buf, int64_t num)

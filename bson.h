@@ -38,6 +38,7 @@
 #define BSON_INT       0x10
 #define BSON_TIMESTAMP 0x11
 #define BSON_LONG      0x12
+#define BSON_ULONG     0x3F
 #define BSON_MINKEY    0xFF
 #define BSON_MAXKEY    0x7F
 
@@ -68,6 +69,7 @@ void php_mongo_serialize_int64(mongo_buffer*, zval* TSRMLS_DC);
 void php_mongo_serialize_double(mongo_buffer*, double);
 void php_mongo_serialize_string(mongo_buffer*, char*, int);
 void php_mongo_serialize_long(mongo_buffer*, int64_t);
+void php_mongo_serialize_ulong(mongo_buffer*, uint64_t);
 void php_mongo_serialize_int(mongo_buffer*, int);
 void php_mongo_serialize_byte(mongo_buffer*, char);
 void php_mongo_serialize_bytes(mongo_buffer*, char*, int);
