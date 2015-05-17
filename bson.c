@@ -39,6 +39,9 @@
 		} \
 	} while (0)
 
+#define IS_ULONG 0x3F
+
+
 extern zend_class_entry *mongo_ce_BinData,
 	*mongo_ce_Code,
 	*mongo_ce_Date,
@@ -189,11 +192,6 @@ int php_mongo_serialize_element(const char *name, int name_len, zval **data, mon
 			PHP_MONGO_SERIALIZE_KEY(BSON_NULL);
 			break;
 
-		case BSON_ULONG:
-			PHP_MONGO_SERIALIZE_KEY(BSON_ULONG);
-			php_mongo_serialize_ulong(buf, Z_LVAL_PP(data));
-			break;
-
 		case IS_LONG:
 			if (MonGlo(native_long)) {
 #if SIZEOF_LONG == 4
@@ -201,6 +199,23 @@ int php_mongo_serialize_element(const char *name, int name_len, zval **data, mon
 # if SIZEOF_LONG == 8
 			PHP_MONGO_SERIALIZE_KEY(BSON_LONG);
 			php_mongo_serialize_long(buf, Z_LVAL_PP(data));
+# else
+#  error The PHP number size is neither 4 or 8 bytes; no clue what to do with that!
+# endif
+#endif
+			} else {
+				PHP_MONGO_SERIALIZE_KEY(BSON_INT);
+				php_mongo_serialize_int(buf, Z_LVAL_PP(data));
+			}
+			break;
+
+		case IS_ULONG:
+			if (MonGlo(native_long)) {
+#if SIZEOF_LONG == 4
+#else
+# if SIZEOF_LONG == 8
+			PHP_MONGO_SERIALIZE_KEY(BSON_ULONG);
+			php_mongo_serialize_ulong(buf, Z_LVAL_PP(data));
 # else
 #  error The PHP number size is neither 4 or 8 bytes; no clue what to do with that!
 # endif
@@ -403,11 +418,11 @@ void php_mongo_serialize_int64(mongo_buffer *buf, zval *data TSRMLS_DC)
  */
 void php_mongo_serialize_uint64(mongo_buffer *buf, zval *data TSRMLS_DC)
 {
-	int64_t value;
-	zval *zvalue = zend_read_property(mongo_ce_Int64, data, "value", 5, 0 TSRMLS_CC);
-	value = strtoll(Z_STRVAL_P(zvalue), NULL, 10);
+	uint64_t value;
+	zval *zvalue = zend_read_property(mongo_ce_Uint64, data, "value", 5, 0 TSRMLS_CC);
+	value = strtoul(Z_STRVAL_P(zvalue), NULL, 10);
 
-	php_mongo_serialize_long(buf, value);
+	php_mongo_serialize_ulong(buf, value);
 }
 
 /*
@@ -578,7 +593,7 @@ void php_mongo_serialize_int(mongo_buffer *buf, int num)
 
 void php_mongo_serialize_ulong(mongo_buffer *buf, uint64_t num)
 {
-	int64_t i = MONGO_64(num);
+	uint64_t i = MONGO_64(num);
 
 	if (BUF_REMAINING <= INT_64) {
 		resize_buf(buf, INT_64);
@@ -1097,7 +1112,11 @@ char* bson_to_zval(char *buf, HashTable *result, mongo_bson_conversion_options *
 			}
 
 			case BSON_ULONG: {
-				int force_as_object = BSON_OPT_FORCE_LONG_AS_OBJECT;
+				int force_as_object = BSON_OPT_DONT_FORCE_LONG_AS_OBJECT;
+
+				if (options && options->flag_cmd_cursor_as_int64 && ((options->level == 1 && strcmp(name, "id") == 0) || (options->level == 3 && strcmp(name, "id") == 0))) {
+					force_as_object = BSON_OPT_FORCE_LONG_AS_OBJECT;
+				}
 
 				CHECK_BUFFER_LEN(INT_64);
 				php_mongo_handle_uint64(
@@ -1382,6 +1401,18 @@ PHP_FUNCTION(bson_encode)
 			RETURN_STRINGL(buf.start, 4, 1);
 #else
 			php_mongo_serialize_long(&buf, Z_LVAL_P(z));
+			RETURN_STRINGL(buf.start, 8, 1);
+#endif
+			break;
+		}
+
+		case IS_ULONG: {
+			CREATE_BUF_STATIC(9);
+#if SIZEOF_LONG == 4
+			php_mongo_serialize_int(&buf, Z_LVAL_P(z));
+			RETURN_STRINGL(buf.start, 4, 1);
+#else
+			php_mongo_serialize_ulong(&buf, Z_LVAL_P(z));
 			RETURN_STRINGL(buf.start, 8, 1);
 #endif
 			break;

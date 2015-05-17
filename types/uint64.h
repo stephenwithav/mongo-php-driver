@@ -25,8 +25,6 @@ PHP_METHOD(MongoUint64, __toString);
 		Z_TYPE_INFO_P(__z) = IS_ULONG;\
 	}
 
-#define IS_ULONG \x3F
-
 #endif
 
 /*

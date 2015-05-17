@@ -33,6 +33,7 @@
 # endif
 #endif
 
+#define strtoull(s, f, b) strtoul(s, f, b)
 
 #include "mcon/types.h"
 #include "mcon/read_preference.h"
@@ -542,7 +543,7 @@ extern zend_module_entry mongo_module_entry;
 /*
  * Error codes
  *
- * TODO: Check and update those all 
+ * TODO: Check and update those all
  *
  * MongoException:
  * 0: The <class> object has not been correctly initialized by its constructor
@@ -636,7 +637,7 @@ extern zend_module_entry mongo_module_entry;
  * 37: Couldn't finish reading from network
  *
  * MongoGridFSException:
- * 0: 
+ * 0:
  * 1: There is more data in the stored file than the meta data shows
  * 2: Invalid collection prefix (throws Exception, not MongoGridFSException)
  * 3: Could not open file for reading
