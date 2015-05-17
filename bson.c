@@ -420,7 +420,7 @@ void php_mongo_serialize_uint64(mongo_buffer *buf, zval *data TSRMLS_DC)
 {
 	uint64_t value;
 	zval *zvalue = zend_read_property(mongo_ce_Uint64, data, "value", 5, 0 TSRMLS_CC);
-	value = strtoul(Z_STRVAL_P(zvalue), NULL, 10);
+	value = strtoull(Z_STRVAL_P(zvalue), NULL, 10);
 
 	php_mongo_serialize_ulong(buf, value);
 }

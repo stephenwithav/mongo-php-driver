@@ -16,7 +16,7 @@
 #include <php.h>
 #include "../php_mongo.h"
 
-zend_class_entry *mongo_ce_Unt64 = NULL;
+zend_class_entry *mongo_ce_Uint64 = NULL;
 
 /* {{{ MongoUint64::__construct(string)
  */
