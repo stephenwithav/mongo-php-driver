@@ -1,4 +1,4 @@
-/**
+,/**
  *  Copyright 2009-2014 MongoDB, Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -50,7 +50,8 @@ extern zend_class_entry *mongo_ce_BinData,
 	*mongo_ce_Exception,
 	*mongo_ce_CursorException,
 	*mongo_ce_Int32,
-	*mongo_ce_Int64;
+	*mongo_ce_Int64,
+	*mongo_ce_Uint64;
 
 ZEND_EXTERN_MODULE_GLOBALS(mongo)
 
@@ -189,7 +190,7 @@ int php_mongo_serialize_element(const char *name, int name_len, zval **data, mon
 			break;
 
 		case BSON_ULONG:
-			PHP_MONGO_SERIALIZE_KEY(BSON_INT);
+			PHP_MONGO_SERIALIZE_KEY(BSON_ULONG);
 			php_mongo_serialize_ulong(buf, Z_LVAL_PP(data));
 			break;
 
@@ -317,6 +318,10 @@ int php_mongo_serialize_element(const char *name, int name_len, zval **data, mon
 				PHP_MONGO_SERIALIZE_KEY(BSON_LONG);
 				php_mongo_serialize_int64(buf, *data TSRMLS_CC);
 			}
+			else if (clazz == mongo_ce_Uint64) {
+				PHP_MONGO_SERIALIZE_KEY(BSON_ULONG);
+				php_mongo_serialize_uint64(buf, *data TSRMLS_CC);
+			}
 			/* serialize a normal object */
 			else {
 				HashTable *hash = Z_OBJPROP_PP(data);
@@ -385,6 +390,18 @@ void php_mongo_serialize_int32(mongo_buffer *buf, zval *data TSRMLS_DC)
  * create a bson long from an Int64 object
  */
 void php_mongo_serialize_int64(mongo_buffer *buf, zval *data TSRMLS_DC)
+{
+	int64_t value;
+	zval *zvalue = zend_read_property(mongo_ce_Int64, data, "value", 5, 0 TSRMLS_CC);
+	value = strtoll(Z_STRVAL_P(zvalue), NULL, 10);
+
+	php_mongo_serialize_long(buf, value);
+}
+
+/*
+ * create a bson ulong from a Uint64 object
+ */
+void php_mongo_serialize_uint64(mongo_buffer *buf, zval *data TSRMLS_DC)
 {
 	int64_t value;
 	zval *zvalue = zend_read_property(mongo_ce_Int64, data, "value", 5, 0 TSRMLS_CC);
@@ -1079,6 +1096,23 @@ char* bson_to_zval(char *buf, HashTable *result, mongo_bson_conversion_options *
 				break;
 			}
 
+			case BSON_ULONG: {
+				int force_as_object = BSON_OPT_DONT_FORCE_LONG_AS_OBJECT;
+
+				if (options && options->flag_cmd_cursor_as_int64 && ((options->level == 1 && strcmp(name, "id") == 0) || (options->level == 3 && strcmp(name, "id") == 0))) {
+					force_as_object = BSON_OPT_FORCE_LONG_AS_OBJECT;
+				}
+				CHECK_BUFFER_LEN(INT_64);
+				php_mongo_handle_uint64(
+					&value,
+					MONGO_64(*((uint64_t*)buf)),
+					force_as_object
+					TSRMLS_CC
+				);
+				buf += INT_64;
+				break;
+			}
+
 			case BSON_DATE: {
 				int64_t d;
 
@@ -1465,6 +1499,7 @@ void mongo_buf_append(char *dest, char *piece)
 	memcpy(dest + pos, piece, strlen(piece) + 1);
 }
 
+
 void php_mongo_handle_int64(zval **value, int64_t nr, int force_options TSRMLS_DC)
 {
 	if (
@@ -1499,6 +1534,51 @@ void php_mongo_handle_int64(zval **value, int64_t nr, int force_options TSRMLS_D
 # if SIZEOF_LONG == 8
 		if (MonGlo(native_long)) {
 			ZVAL_LONG(*value, (long)nr);
+		} else {
+			ZVAL_DOUBLE(*value, (double)nr);
+		}
+# else
+#  error The PHP number size is neither 4 or 8 bytes; no clue what to do with that!
+# endif
+#endif
+	}
+}
+
+
+void php_mongo_handle_uint64(zval **value, uint64_t nr, int force_options TSRMLS_DC)
+{
+	if (
+		(force_options == BSON_OPT_FORCE_LONG_AS_OBJECT || MonGlo(long_as_object))
+#if SIZEOF_LONG == 4
+		||
+		(force_options == BSON_OPT_INT32_LONG_AS_OBJECT)
+#endif
+	) {
+		char *tmp_string;
+
+#ifdef WIN32
+		spprintf(&tmp_string, 0, "%I64d", (uint64_t)nr);
+#else
+		spprintf(&tmp_string, 0, "%lld", (unsigned long long int)nr);
+#endif
+		object_init_ex(*value, mongo_ce_Uint64);
+
+		zend_update_property_string(mongo_ce_Uint64, *value, "value", strlen("value"), tmp_string TSRMLS_CC);
+
+		efree(tmp_string);
+	} else {
+#if SIZEOF_LONG == 4
+		if (nr <= LONG_MAX && nr >= -LONG_MAX - 1) {
+			ZVAL_ULONG(*value, (unsigned long)nr);
+			return;
+		}
+		zend_throw_exception_ex(mongo_ce_CursorException, 23 TSRMLS_CC, "Cannot natively represent the long %lld on this platform", (uint64_t)nr);
+		zval_ptr_dtor(value);
+		return;
+#else
+# if SIZEOF_LONG == 8
+		if (MonGlo(native_long)) {
+			ZVAL_ULONG(*value, (unsigned long)nr);
 		} else {
 			ZVAL_DOUBLE(*value, (double)nr);
 		}

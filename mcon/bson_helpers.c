@@ -38,6 +38,13 @@ void mcon_serialize_int64(struct mcon_str *str, int64_t num)
 	mcon_str_addl(str, (char*) &i, 8, 0);
 }
 
+void mcon_serialize_uint64(struct mcon_str *str, uint64_t num)
+{
+	int64_t i = MONGO_64(num);
+
+	mcon_str_addl(str, (char*) &i, 8, 0);
+}
+
 /*
  * Local variables:
  * tab-width: 4

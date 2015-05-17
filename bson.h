@@ -64,6 +64,7 @@ void php_mongo_serialize_ts(mongo_buffer*, zval* TSRMLS_DC);
 void php_mongo_serialize_bin_data(mongo_buffer*, zval* TSRMLS_DC);
 void php_mongo_serialize_int32(mongo_buffer*, zval* TSRMLS_DC);
 void php_mongo_serialize_int64(mongo_buffer*, zval* TSRMLS_DC);
+void php_mongo_serialize_uint64(mongo_buffer*, zval* TSRMLS_DC);
 
 /* simple types */
 void php_mongo_serialize_double(mongo_buffer*, double);
@@ -116,6 +117,7 @@ void mongo_buf_init(char *dest);
 void mongo_buf_append(char *dest, char *piece);
 
 void php_mongo_handle_int64(zval **value, int64_t nr, int force_as_object TSRMLS_DC);
+void php_mongo_handle_uint64(zval **value, uint64_t nr, int force_as_object TSRMLS_DC);
 
 #if PHP_C_BIGENDIAN
 /* Reverse the bytes in an int, wheeee stupid byte tricks */

@@ -19,6 +19,14 @@
 PHP_METHOD(MongoUint64, __construct);
 PHP_METHOD(MongoUint64, __toString);
 
+#define ZVAL_ULONG(z, l) {\
+		zval *__z = (z);\
+		Z_LVAL_P(__z) = l;\
+		Z_TYPE_INFO_P(__z) = IS_ULONG;\
+	}
+
+#define IS_ULONG \x3F
+
 #endif
 
 /*

@@ -64,6 +64,13 @@ void bson_add_long(mcon_str *str, char *fieldname, int64_t v)
 	mcon_serialize_int64(str, v);
 }
 
+void bson_add_ulong(mcon_str *str, char *fieldname, uint64_t v)
+{
+	mcon_str_addl(str, "\x3f", 1, 0);
+	mcon_str_addl(str, fieldname, strlen(fieldname) + 1, 0);
+	mcon_serialize_uint64(str, v);
+}
+
 void bson_add_stringl(mcon_str *str, char *fieldname, char *string, int len)
 {
 	mcon_str_addl(str, "\x02", 1, 0);
@@ -289,6 +296,7 @@ char *bson_skip_field_name(char *data)
 #define BSON_INT32           0x10
 #define BSON_TIMESTAMP       0x11
 #define BSON_INT64           0x12
+#define BSON_ULONG           0x3F
 #define BSON_MIN_KEY         0xFF
 #define BSON_MAX_KEY         0x7F
 
@@ -322,6 +330,7 @@ element 	::= 	"\x01" e_name double 	Floating point
 	| 	"\x10" e_name int32 	32-bit Integer
 	| 	"\x11" e_name int64 	Timestamp
 	| 	"\x12" e_name int64 	64-bit integer
+	|   "\x34" e_name uint64    64-bit unsigned integer
 	| 	"\xFF" e_name 	Min key
 	| 	"\x7F" e_name 	Max key
 */
@@ -351,6 +360,7 @@ element 	::= 	"\x01" e_name double 	Floating point
 			return data + 1;
 		case BSON_DATETIME:
 		case BSON_TIMESTAMP:
+		case BSON_ULONG:
 		case BSON_INT64:
 			return data + sizeof(int64_t);
 		case BSON_REGEXP:
