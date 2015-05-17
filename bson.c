@@ -1,4 +1,4 @@
-,/**
+/**
  *  Copyright 2009-2014 MongoDB, Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -1097,11 +1097,8 @@ char* bson_to_zval(char *buf, HashTable *result, mongo_bson_conversion_options *
 			}
 
 			case BSON_ULONG: {
-				int force_as_object = BSON_OPT_DONT_FORCE_LONG_AS_OBJECT;
+				int force_as_object = BSON_OPT_FORCE_LONG_AS_OBJECT;
 
-				if (options && options->flag_cmd_cursor_as_int64 && ((options->level == 1 && strcmp(name, "id") == 0) || (options->level == 3 && strcmp(name, "id") == 0))) {
-					force_as_object = BSON_OPT_FORCE_LONG_AS_OBJECT;
-				}
 				CHECK_BUFFER_LEN(INT_64);
 				php_mongo_handle_uint64(
 					&value,
